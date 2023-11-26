@@ -1,0 +1,15 @@
+TenDB Cluster集群完整数据备份
+
+因为数据按照hash哈希规则取模后打散到后端DB上，那么如何得到一份完整的数据呢？
+
+1）首先在后端DB上，提取原库表结构
+/usr/local/mysql/bin/mysqldump -h172.19.136.33 -uadmin -phechunyang -P3306 -d -R -E --triggers -B sysbench_1 > ./sysbench_schema.sql
+
+2）替换库名
+sed -i -r 's/(sysbench)_[0-9]*/\1/g' sysbench_schema.sql
+
+3) 搭建一台专用Tspider节点做备份
+注：路由表填写从库ip，避免路由主库节点引发CPU压力，无需部署tdbctl节点
+
+通过mydumper备份
+mydumper -h 172.19.136.31 -u admin -p hechunyang -P 25000 --rows 10000000 -t 8 -v 3 -B 'sysbench' --no-schemas --complete-insert --compress --kill-long-queries --no-delete -o ./
